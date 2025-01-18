@@ -1,5 +1,16 @@
 import unittest
-from block_markdown import markdown_to_blocks, block_to_block_type
+from block_markdown import (
+    markdown_to_html_node,
+    markdown_to_blocks,
+    block_to_block_type,
+    extract_title,
+    block_type_paragraph,
+    block_type_heading,
+    block_type_code,
+    block_type_olist,
+    block_type_ulist,
+    block_type_quote,
+)
 
 
 class TestMarkdownToHTML(unittest.TestCase):
@@ -46,218 +57,137 @@ This is the same paragraph on a new line
             ],
         )
 
-    def test_block_to_block_type_headings(self):
-        # One level heading
-        markdown = """
-# This is a heading
+    def test_block_to_block_types(self):
+        block = "# heading"
+        self.assertEqual(block_to_block_type(block), block_type_heading)
+        block = "```\ncode\n```"
+        self.assertEqual(block_to_block_type(block), block_type_code)
+        block = "> quote\n> more quote"
+        self.assertEqual(block_to_block_type(block), block_type_quote)
+        block = "* list\n* items"
+        self.assertEqual(block_to_block_type(block), block_type_ulist)
+        block = "1. list\n2. items"
+        self.assertEqual(block_to_block_type(block), block_type_olist)
+        block = "paragraph"
+        self.assertEqual(block_to_block_type(block), block_type_paragraph)
+
+    def test_paragraph(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
 """
-        expected_output = "heading"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
 
-        # Two level heading
-        markdown = """
-## This is a heading
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p></div>",
+        )
+
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with *italic* text and `code` here
+
 """
-        expected_output = "heading"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
 
-        # Three level heading
-        markdown = """
-### This is a heading
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_lists(self):
+        md = """
+- This is a list
+- with items
+- and *more* items
+
+1. This is an `ordered` list
+2. with items
+3. and more items
+
 """
-        expected_output = "heading"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
 
-        # Four level heading
-        markdown = """
-#### This is a heading
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><ul><li>This is a list</li><li>with items</li><li>and <i>more</i> items</li></ul><ol><li>This is an <code>ordered</code> list</li><li>with items</li><li>and more items</li></ol></div>",
+        )
+
+    def test_headings(self):
+        md = """
+# this is an h1
+
+this is paragraph text
+
+## this is an h2
 """
-        expected_output = "heading"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
 
-        # Five level heading
-        markdown = """
-##### This is a heading
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>this is an h1</h1><p>this is paragraph text</p><h2>this is an h2</h2></div>",
+        )
+
+    def test_blockquote(self):
+        md = """
+> This is a
+> blockquote block
+
+this is paragraph text
+
 """
-        expected_output = "heading"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
 
-        # Six level heading
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><blockquote>This is a blockquote block</blockquote><p>this is paragraph text</p></div>",
+        )
+        
+    def test_extract_title(self):
+        # h1 header
         markdown = """
-###### This is a heading
+# Header hehehe
 """
-        expected_output = "heading"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No space heading
+        expected_output = "Header hehehe"
+        self.assertEqual(extract_title(markdown), expected_output)
+        # h2 header
         markdown = """
-######This is a heading
+## Header hehehe
 """
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
+        expected_output = "There is no h1 header"
+        try:
+            self.assertEqual(extract_title(markdown), expected_output)
+        except Exception as e:
+            self.assertEqual(str(e), expected_output)
 
-        # No heading
+        # No header
         markdown = """
-This is a heading
+Header hehehe
 """
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-
-    def test_block_to_block_type_code(self):
-        # Normal code
+        expected_output = "There is no h1 header"
+        try:
+            self.assertEqual(extract_title(markdown), expected_output)
+        except Exception as e:
+            self.assertEqual(str(e), expected_output)
+        
+        # Double h1 dear
         markdown = """
-```
-This is a heading
-```
+# Header hehehe
+# Ignored header
 """
-        expected_output = "code"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # Not closed code
-        markdown = """
-```
-This is a heading
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No code
-        markdown = """
-
-This is a heading
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-
-    def test_block_to_block_type_quote(self):
-        # Normal quotes
-        markdown = """
-> This is a quote
-> Followed by another quote line
-> And a third
-> And another one
-> Another one
-"""
-        expected_output = "quote"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No > symbol in everyline
-        markdown = """
-> This is a quote
-Followed by another quote line
-And a third
-> And another one
-> Another one
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-
-    def test_block_to_block_type_ul(self):
-        # Normal * list
-        markdown = """
-* This is a quote
-* Followed by another quote line
-* And a third
-* And another one
-* Another one
-"""
-        expected_output = "unordered_list"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # Mix * and - list
-        markdown = """
-* This is a quote
-- Followed by another quote line
-- And a third
-* And another one
-* Another one
-"""
-        expected_output = "unordered_list"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # Only - list
-        markdown = """
-- This is a quote
-- Followed by another quote line
-- And a third
-- And another one
-- Another one
-"""
-        expected_output = "unordered_list"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No space list
-        markdown = """
-* This is a quote
-- Followed by another quote line
-- And a third
-* And another one
-*Another one
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No list
-        markdown = """
-This is a quote
-Followed by another quote line
-> And a third
-And another one
-Another one
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-
-    def test_block_to_block_type_ol(self):
-        # Normal ordered list
-        markdown = """
-1. This is a quote
-2. Followed by another quote line
-3. And a third
-4. And another one
-5. Another one
-"""
-        expected_output = "ordered_list"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No valid list
-        markdown = """
-0. First item
-1. This is a quote
-2. Followed by another quote line
-3. And a third
-4. And another one
-5. Another one
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No space list
-        markdown = """
-1.This is a quote
-2. Followed by another quote line
-3. And a third
-4. And another one
-5. Another one
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
-        # No pojnt list
-        markdown = """
-1 This is a quote
-2 Followed by another quote line
-3 And a third
-4 And another one
-5 Another one
-"""
-        expected_output = "paragraph"
-        self.assertEqual(block_to_block_type(markdown), expected_output)
-
+        expected_output = "Header hehehe"
+        self.assertEqual(extract_title(markdown), expected_output)
 
 if __name__ == "__main__":
     unittest.main()

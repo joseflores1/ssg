@@ -1,7 +1,17 @@
-from textnode import TextNode, TextType
+import os
+import shutil
+from website_generation import recursive_copy_static, generate_page, markdown_path, template_path, dest_path
+
+from_path = "./static"
+to_path = "./public"
 
 def main():
-    dummy_object = TextNode("This is a text node", TextType.BOLD_TEXT, "https://www.boot.dev")
-    print(dummy_object)
+    if os.path.exists(to_path):
+        shutil.rmtree(to_path)
+        print(f"Removed {to_path} folder")
+    print(f"Copying static files from {from_path} to public directory {to_path}")
+    recursive_copy_static(from_path, to_path)
+    print(f"Generating page to {dest_path} using markdown from {markdown_path} and template from {template_path}")
+    generate_page(markdown_path, template_path, dest_path)
 
 main()
