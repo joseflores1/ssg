@@ -1,9 +1,9 @@
 import shutil
 import os
 from block_markdown import markdown_to_html_node, extract_title
-markdown_path = "./content/index.md"
+from pathlib import Path
+markdown_path = "./content"
 template_path = "./template.html"
-dest_path = "./public/index.html"
 
 # Former implementation allowed to delete only the files that were present in both folders
 def recursive_copy_static(src, dst):
@@ -39,7 +39,7 @@ def generate_page(from_path, template_path, dest_path):
     print(f"Generating page from {from_path}, to {dest_path} using {template_path}")
     with open(from_path, mode = "r") as f:
         markdown = f.read()
-    with open(template_path, mode = "rt") as f:
+    with open(template_path, mode = "r") as f:
         template = f.read()
     html_string = markdown_to_html_node(markdown).to_html()
     markdown_title = extract_title(markdown)
@@ -49,3 +49,15 @@ def generate_page(from_path, template_path, dest_path):
         os.makedirs(dest_dir_name) 
     with open(dest_path, "w") as f:
         f.write(updated_template)
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    content_dir_list = os.listdir(dir_path_content)
+    for dir in content_dir_list:
+        join_src_dirs = os.path.join(dir_path_content, dir)
+        join_dst_dirs = os.path.join(dest_dir_path, dir)
+        if os.path.isfile(join_src_dirs):
+            generate_page(join_src_dirs, template_path, join_dst_dirs)
+            p = Path(join_dst_dirs)
+            p.rename(p.with_suffix(".html"))
+        else:
+            generate_pages_recursive(join_src_dirs, template_path, join_dst_dirs)
